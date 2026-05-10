@@ -4,7 +4,16 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/StartScreen.unity
+    guid: 4939ef8226f1c7daaafa520383b1652c
+  - enabled: 1
+    path: Assets/Scenes/OpeningScene.unity
+    guid: 678de1ae6fde4e14babbc553d05994fc
+  - enabled: 1
+    path: Assets/Scenes/NatureFishingScene.unity
+    guid: b6fa8d70114744244b2fea33e07e7621
   m_configObjects:
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: d062bb60b55aa3849af543aea1e54ae3, type: 2}
     com.unity.xr.openxr.settings4: {fileID: 11400000, guid: 4515662b386bee247aa5a4f54d10488c, type: 2}
