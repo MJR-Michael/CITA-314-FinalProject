@@ -1,158 +1,90 @@
-using System.Collections;
 using UnityEngine;
 
 public class FishingRodCast : MonoBehaviour
 {
-    [Header("References")]
+    [Header("Rod Setup")]
     public Transform rodTip;
-    public LineRenderer lineRenderer;
-    public AudioSource audioSource;
+    public float castRange = 30f;
 
-    [Header("Fish Prefabs (3 types)")]
-    public GameObject[] fishPrefabs;
-
-    [Header("Audio")]
-    public AudioClip invalidCastSFX;
-
-    [Header("Settings")]
-    public float maxCastDistance = 20f;
+    [Header("Water Detection")]
     public LayerMask waterLayer;
 
-    [Header("State")]
-    public bool isCast = false;
-    public bool fishHooked = false;
+    [Header("Bobber")]
+    public GameObject bobberPrefab;
+    public float bobberSpawnOffset = 0.1f;
 
-    private Vector3 hookPoint;
-    private GameObject currentFish;
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip correctCastSound;
+    public AudioClip incorrectCastSound;
 
-    void Start()
-    {
-        if (lineRenderer != null)
-            lineRenderer.positionCount = 2;
-    }
+    private GameObject currentBobber;
 
     void Update()
     {
-        HandleInput();
-        UpdateLine();
-    }
-
-    void HandleInput()
-    {
-        if (OVRInput.GetDown(OVRInput.Button.One)) // A button
+        // A button (right controller)
+        if (OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.RTouch))
         {
-            TryCast();
+            TryCastLine();
         }
     }
 
-    void TryCast()
+    void TryCastLine()
     {
-        if (isCast) return;
+        Ray ray = new Ray(rodTip.position, rodTip.forward);
+        RaycastHit hit;
 
-        Vector3 origin = rodTip.position;
-        Vector3 direction = rodTip.forward;
-
-        if (Physics.Raycast(origin, direction, out RaycastHit hit, maxCastDistance, waterLayer))
+        if (Physics.Raycast(ray, out hit, castRange, waterLayer))
         {
-            hookPoint = hit.point;
-            isCast = true;
-
-            Debug.Log("🎣 Cast successful!");
-
-            OnCastSuccess();
-        }
-        else
-        {
-            Debug.Log("❌ Invalid cast - not aiming at water");
-
-            PlayInvalidCastFeedback();
-        }
-    }
-
-    void PlayInvalidCastFeedback()
-    {
-        // 🔊 Sound effect
-        if (audioSource != null && invalidCastSFX != null)
-        {
-            audioSource.PlayOneShot(invalidCastSFX);
-        }
-
-        // 🎮 Haptic feedback
-        OVRInput.SetControllerVibration(0.2f, 0.3f, OVRInput.Controller.RTouch);
-    }
-
-    void OnCastSuccess()
-    {
-        StartCoroutine(FishBiteRoutine());
-    }
-
-    IEnumerator FishBiteRoutine()
-    {
-        float waitTime = Random.Range(5f, 10f);
-
-        Debug.Log($"🐟 Waiting for fish bite: {waitTime}s");
-
-        yield return new WaitForSeconds(waitTime);
-
-        SpawnFishAtHook();
-    }
-
-    void SpawnFishAtHook()
-    {
-        if (fishPrefabs == null || fishPrefabs.Length == 0)
-        {
-            Debug.LogWarning("No fish prefabs assigned!");
-            return;
-        }
-
-        int index = Random.Range(0, fishPrefabs.Length);
-        GameObject fishPrefab = fishPrefabs[index];
-
-        currentFish = Instantiate(fishPrefab, hookPoint, Quaternion.identity);
-
-        // Attach fish to line (temporary system)
-        currentFish.transform.SetParent(lineRenderer.transform);
-
-        fishHooked = true;
-
-        Debug.Log("🐟 Fish hooked!");
-    }
-
-    void UpdateLine()
-    {
-        if (!lineRenderer || !rodTip) return;
-
-        lineRenderer.SetPosition(0, rodTip.position);
-
-        if (isCast)
-        {
-            lineRenderer.SetPosition(1, hookPoint);
-        }
-        else
-        {
-            // Preview cast direction
-            Vector3 origin = rodTip.position;
-            Vector3 direction = rodTip.forward;
-
-            if (Physics.Raycast(origin, direction, out RaycastHit hit, maxCastDistance, waterLayer))
+            if (hit.collider.CompareTag("Water") || hit.collider.name == "Water")
             {
-                lineRenderer.SetPosition(1, hit.point);
+                PlaySound(correctCastSound);
+                CastLine(hit.point, hit.normal);
             }
             else
             {
-                lineRenderer.SetPosition(1, origin + direction * maxCastDistance);
+                PlaySound(incorrectCastSound);
             }
+        }
+        else
+        {
+            PlaySound(incorrectCastSound);
         }
     }
 
-    // Optional reset for testing
-    public void ResetCast()
+    void CastLine(Vector3 hitPoint, Vector3 hitNormal)
     {
-        isCast = false;
-        fishHooked = false;
-        hookPoint = rodTip.position;
+        // Remove old bobber
+        if (currentBobber != null)
+        {
+            Destroy(currentBobber);
+        }
 
-        if (currentFish != null)
-            Destroy(currentFish);
+        Vector3 spawnPos = hitPoint + hitNormal * bobberSpawnOffset;
+
+        currentBobber = Instantiate(
+            bobberPrefab,
+            spawnPos,
+            Quaternion.identity
+        );
+
+        // Pass rod reference to bobber
+        BobberFishSpawner bobberScript =
+            currentBobber.GetComponent<BobberFishSpawner>();
+
+        if (bobberScript != null)
+        {
+            bobberScript.rodTip = rodTip;
+        }
+
+        Debug.Log("🎣 Bobber spawned at: " + spawnPos);
+    }
+
+    void PlaySound(AudioClip clip)
+    {
+        if (audioSource != null && clip != null)
+        {
+            audioSource.PlayOneShot(clip);
+        }
     }
 }

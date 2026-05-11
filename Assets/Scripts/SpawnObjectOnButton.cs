@@ -2,46 +2,43 @@ using UnityEngine;
 
 public class SpawnObjectOnButton : MonoBehaviour
 {
-    [Header("Prefab to spawn")]
+    [Header("Prefab")]
     public GameObject prefabToSpawn;
 
-    [Header("Ray settings")]
+    [Header("OVR References")]
+    public Transform leftControllerAnchor; // Assign OVRCameraRig LeftHandAnchor
+
+    [Header("Settings")]
     public float maxDistance = 10f;
     public LayerMask hitLayers = ~0;
 
     void Update()
     {
-        // X button on left Oculus controller
         if (OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.LTouch))
         {
-            SpawnAtControllerAim();
+            Spawn();
         }
     }
 
-    void SpawnAtControllerAim()
+    void Spawn()
     {
-        if (prefabToSpawn == null)
+        if (prefabToSpawn == null || leftControllerAnchor == null)
         {
-            Debug.LogWarning("Prefab not assigned!");
+            Debug.LogWarning("Missing prefab or controller anchor reference!");
             return;
         }
 
-        // Get left controller position and rotation
-        Vector3 origin = OVRInput.GetLocalControllerPosition(OVRInput.Controller.LTouch);
-        Quaternion rotation = OVRInput.GetLocalControllerRotation(OVRInput.Controller.LTouch);
-
-        Vector3 direction = rotation * Vector3.forward;
+        Vector3 origin = leftControllerAnchor.position;
+        Vector3 direction = leftControllerAnchor.forward;
 
         Vector3 spawnPosition;
 
-        // Raycast from controller forward
         if (Physics.Raycast(origin, direction, out RaycastHit hit, maxDistance, hitLayers))
         {
             spawnPosition = hit.point;
         }
         else
         {
-            // fallback if nothing is hit
             spawnPosition = origin + direction * 2f;
         }
 
