@@ -5,30 +5,28 @@ public class FountainPuzzle : MonoBehaviour
     public FountainDetector fountain1;
     public FountainDetector fountain2;
 
-    public GameObject objectToSpawn;
-    public Transform spawnPoint;
+    public GameObject[] objectsToEnable;
 
-    private bool hasSpawned = false;
+    private bool hasActivated = false;
 
     void Update()
     {
-        if (!hasSpawned &&
+        if (!hasActivated &&
             fountain1.HasExactlyOneCoin() &&
             fountain2.HasExactlyOneCoin())
         {
-            SpawnObject();
+            EnableObjects();
         }
     }
 
-    void SpawnObject()
+    void EnableObjects()
     {
-        Instantiate(
-            objectToSpawn,
-            spawnPoint.position,
-            spawnPoint.rotation,
-            spawnPoint
-        );
+        foreach (GameObject obj in objectsToEnable)
+        {
+            if (obj != null)
+                obj.SetActive(true);
+        }
 
-        hasSpawned = true;
+        hasActivated = true;
     }
 }
